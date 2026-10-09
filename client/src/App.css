@@ -262,6 +262,16 @@
   font-size: 10px;
 }
 
+.payment-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.payment-form .checkout-button {
+  margin-top: 0;
+}
+
 .notice {
   margin: 14px 0 0;
   padding: 11px 12px;
