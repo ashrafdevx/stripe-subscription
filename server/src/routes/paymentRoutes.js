@@ -6,6 +6,11 @@ const router = express.Router();
 router.post('/create-payment-intent', async (req, res) => {
   try {
     const { productKey } = req.body;
+     if (!productKey) {
+      return res.status(400).json({
+        error: 'productKey is required.',
+      });
+    }
     const clientSecret = await createPaymentIntent(productKey);
     res.json({ clientSecret });
   } catch (error) {

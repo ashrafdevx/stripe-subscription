@@ -7,7 +7,7 @@ const connectDatabase = require('./src/config/database');
 const app = require('./src/app');
 
 const port = process.env.PORT || 3000;
-
+app.use(express.json());
 // Validate required environment variables
 const requiredEnvVars = [
   'STRIPE_SERVER_SECRET_KEY',
