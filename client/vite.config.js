@@ -6,7 +6,7 @@ const workspaceRoot = fileURLToPath(new URL('..', import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, workspaceRoot, '')
-  const publishableKey = env.VITE_STRIPE_PUBLISHABLE_KEY || env.STRIPE_PUBLISHABLE_KEY || ''
+  const publishableKey = env.STRIPE_PUBLISHABLE_KEY || env.STRIPE_PUBLISHABLE_KEY || ''
 
   if (publishableKey && !publishableKey.startsWith('pk_')) {
     throw new Error('Stripe frontend configuration must use a publishable key beginning with pk_.')
@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
     },
     define: {
-      'import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY': JSON.stringify(publishableKey),
+      'import.meta.env.STRIPE_PUBLISHABLE_KEY': JSON.stringify(publishableKey),
     },
   }
 })
