@@ -42,7 +42,7 @@ console.log("confirmPayment result.paymentIntent?.status:", result.paymentIntent
       if (result.error) {
         setError(result.error.message || "The payment could not be confirmed.");
       } else if (result.paymentIntent?.status === "succeeded") {
-        setStatus("Payment succeeded in Stripe. This demo does not record orders or verify fulfillment.");
+        setStatus("Payment succeeded in Stripe. Your purchase record is updated when the verified webhook arrives.");
       } else if (result.paymentIntent?.status === "processing") {
         setStatus("Payment is processing. Check Stripe Dashboard for its final status.");
       } else {
@@ -184,7 +184,7 @@ function App() {
           {error && <p className="notice error" role="alert">{error}</p>}
           {paymentReturned && (
             <p className="notice success" role="status">
-              Returned from Stripe. Check Stripe Dashboard to confirm payment; this demo does not verify or fulfill orders.
+              Returned from Stripe. The backend records payment status after it receives and verifies Stripe's webhook.
             </p>
           )}
           {checkoutStatus === "success" && (
