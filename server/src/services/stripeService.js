@@ -1,14 +1,25 @@
+
 const Stripe = require('stripe');
 const Purchase = require('../models/Purchase');
 
 const stripe = Stripe(process.env.STRIPE_SERVER_SECRET_KEY);
 
-async function createPaymentIntent() {
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: 1000,
+async function createPaymentIntent(productKey) {
+  // For now, this is a fixed learning-project product.
+  const product = {
+    name: 'The Sunday Ceramic Cup',
+    amount: 1000, // 1000 cents = $10.00
     currency: 'usd',
-    allowed_payment_method_types: ['card'],
-    metadata: { productName: 'The Sunday Ceramic Cup' },
+  };
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: product.amount,
+    currency: product.currency,
+    payment_method_types: ['card'],
+    metadata: {
+      productKey: productKey || 'sunday-ceramic-cup',
+      productName: product.name,
+    },
   });
 
   if (!paymentIntent.client_secret) {
@@ -18,7 +29,7 @@ async function createPaymentIntent() {
   try {
     await Purchase.create({
       stripePaymentIntentId: paymentIntent.id,
-      productName: 'The Sunday Ceramic Cup',
+      productName: product.name,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
       status: 'pending',
@@ -27,8 +38,12 @@ async function createPaymentIntent() {
     try {
       await stripe.paymentIntents.cancel(paymentIntent.id);
     } catch (cancelError) {
-      console.error(`Could not cancel unrecorded PaymentIntent ${paymentIntent.id}:`, cancelError);
+      console.error(
+        'Could not cancel unrecorded PaymentIntent:',
+        cancelError.message,
+      );
     }
+
     throw error;
   }
 

@@ -3,9 +3,10 @@ const { createPaymentIntent } = require('../services/stripeService');
 
 const router = express.Router();
 
-router.post('/create-payment-intent', async (_req, res) => {
+router.post('/create-payment-intent', async (req, res) => {
   try {
-    const clientSecret = await createPaymentIntent();
+    const { productKey } = req.body;
+    const clientSecret = await createPaymentIntent(productKey);
     res.json({ clientSecret });
   } catch (error) {
     console.error('Stripe PaymentIntent creation failed:', error);
