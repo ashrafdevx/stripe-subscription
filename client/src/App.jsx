@@ -86,7 +86,7 @@ function App() {
     setError("");
 
     try {
-      const response = await fetch(`${apiUrl}/create-payment-intent`, {
+      const response = await fetch(`${API_URL}/create-payment-intent`, {
         method: "POST",
       });
       const result = await response.json();
