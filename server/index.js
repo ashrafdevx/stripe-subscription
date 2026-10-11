@@ -3,11 +3,15 @@ const path = require('node:path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 
+const express = require('express');
 const connectDatabase = require('./src/config/database');
 const app = require('./src/app');
 
 const port = process.env.PORT || 3000;
+
+// Parse JSON request bodies before handling routes
 app.use(express.json());
+
 // Validate required environment variables
 const requiredEnvVars = [
   'STRIPE_SERVER_SECRET_KEY',
