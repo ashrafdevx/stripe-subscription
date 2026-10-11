@@ -3,8 +3,9 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { loadStripe } from "@stripe/stripe-js";
 import "./App.css";
 
-const apiUrl = import.meta.env.API_URL || "http://localhost:3000";
-const publishableKey = import.meta.env.STRIPE_PUBLISHABLE_KEY;
+const API_URL = import.meta.env.PROD
+  ? 'https://stripe-subscription-muw7.onrender.com'
+  : 'http://localhost:3000';const publishableKey = import.meta.env.STRIPE_PUBLISHABLE_KEY;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
 const paymentReturned = new URLSearchParams(window.location.search).get("payment") === "complete";
