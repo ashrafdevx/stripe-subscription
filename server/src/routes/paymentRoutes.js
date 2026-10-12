@@ -9,6 +9,7 @@ router.post('/create-payment-intent', async (req, res) => {
     const clientSecret = await createPaymentIntent();
 
     return res.status(200).json({ clientSecret });
+    
   } catch (error) {
     const cause = error.cause || error;
     console.error('Stripe PaymentIntent creation failed:', {

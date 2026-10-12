@@ -29,18 +29,11 @@ function createStripeClient() {
   };
 }
 
-test('creates a new $10 USD card PaymentIntent and records it as pending', async () => {
+test('creates a new $10 USD PaymentIntent without creating a purchase before payment', async () => {
   const stripeClient = createStripeClient();
-  const purchases = [];
 
-  const firstClientSecret = await createPaymentIntent({
-    stripeClient,
-    purchaseModel: { create: async (purchase) => purchases.push(purchase) },
-  });
-  const secondClientSecret = await createPaymentIntent({
-    stripeClient,
-    purchaseModel: { create: async (purchase) => purchases.push(purchase) },
-  });
+  const firstClientSecret = await createPaymentIntent({ stripeClient });
+  const secondClientSecret = await createPaymentIntent({ stripeClient });
 
   assert.notEqual(firstClientSecret, secondClientSecret);
   assert.equal(stripeClient.created.length, 2);
@@ -49,35 +42,6 @@ test('creates a new $10 USD card PaymentIntent and records it as pending', async
     currency: 'usd',
     metadata: { productName: 'The Sunday Ceramic Cup' },
   });
-  assert.deepEqual(purchases.map(({ stripePaymentIntentId, amount, currency, status }) => ({
-    stripePaymentIntentId,
-    amount,
-    currency,
-    status,
-  })), [
-    { stripePaymentIntentId: 'pi_test_1', amount: 1000, currency: 'usd', status: 'pending' },
-    { stripePaymentIntentId: 'pi_test_2', amount: 1000, currency: 'usd', status: 'pending' },
-  ]);
-});
-
-test('cancels an unrecorded PaymentIntent and identifies a MongoDB persistence failure', async () => {
-  const stripeClient = createStripeClient();
-  const databaseError = new Error('database write failed');
-
-  await assert.rejects(
-    createPaymentIntent({
-      stripeClient,
-      purchaseModel: { create: async () => { throw databaseError; } },
-      logger: { error() {} },
-    }),
-    (error) => {
-      assert.equal(error.stage, 'mongodb.persist_purchase');
-      assert.equal(error.cause, databaseError);
-      return true;
-    },
-  );
-
-  assert.deepEqual(stripeClient.canceled, ['pi_test_1']);
 });
 
 test('identifies Stripe PaymentIntent creation failures', async () => {
@@ -90,7 +54,6 @@ test('identifies Stripe PaymentIntent creation failures', async () => {
           create: async () => { throw stripeError; },
         },
       },
-      purchaseModel: { create: async () => assert.fail('purchase should not be saved') },
     }),
     (error) => {
       assert.equal(error.stage, 'stripe.create_payment_intent');

@@ -66,7 +66,7 @@ npm run build
 npm run lint
 ```
 
-The server defaults to port `3000` and client origin `http://localhost:5173`. Override these with `PORT` and `CLIENT_URL` in `server/.env` if needed. The client API address can be overridden with `VITE_API_URL`.
+The server defaults to port `3000` and allows the local client and `https://stripe-subscription-black.vercel.app`. Add other allowed frontend origins as a comma-separated list in `CLIENT_URL` in `server/.env` or Render's environment settings. The client API address can be overridden with `VITE_API_URL`.
 
 ## API
 
@@ -76,7 +76,7 @@ The server defaults to port `3000` and client origin `http://localhost:5173`. Ov
 
 Each new checkout attempt creates a new PaymentIntent. Payment submission is locked while confirmation is in progress; after a completed or failed attempt, the UI requires a new PaymentIntent before another confirmation.
 
-MongoDB uses two collections: `purchases` stores the product, amount, PaymentIntent ID, current status, and success time; `paymentlogs` stores Stripe event IDs, event types, outcomes, and related purchase IDs. Stripe event IDs are unique so webhook retries do not create duplicate logs. Backend files are split by job: `server/index.js` starts the server, `server/src/config/database.js` connects to MongoDB, `server/src/models/` defines both collections, `server/src/routes/` handles HTTP requests, and `server/src/services/` contains the Stripe and webhook logic.
+MongoDB uses two collections: `purchases` contains completed purchases only; a purchase is created or updated when Stripe sends the verified `payment_intent.succeeded` webhook. `paymentlogs` stores each Stripe event, including pending, success, processing, failure, and cancellation, with its event ID, outcome, and related purchase ID when one exists. Stripe event IDs are unique so webhook retries do not create duplicate logs. Configure the Stripe webhook endpoint to send `payment_intent.created`, `payment_intent.processing`, `payment_intent.succeeded`, `payment_intent.payment_failed`, and `payment_intent.canceled` events. Backend files are split by job: `server/index.js` starts the server, `server/src/config/database.js` connects to MongoDB, `server/src/models/` defines both collections, `server/src/routes/` handles HTTP requests, and `server/src/services/` contains the Stripe and webhook logic.
 
 This is an educational starter, not a production payment implementation. The browser's success message is not proof of payment; use the verified webhook-updated purchase record.
 

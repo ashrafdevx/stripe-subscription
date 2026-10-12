@@ -4,9 +4,17 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const stripeWebhookRoutes = require('./routes/stripeWebhookRoutes');
 
 const app = express();
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const clientUrls = new Set([
+  'http://localhost:5173',
+  'https://stripe-subscription-black.vercel.app',
+  ...(process.env.CLIENT_URL || '').split(','),
+].map((url) => url.trim().replace(/\/+$/, '')).filter(Boolean));
 
-app.use(cors({ origin: clientUrl }));
+app.use(cors({
+  origin: (origin, callback) => {
+    callback(null, !origin || clientUrls.has(origin.replace(/\/+$/, '')));
+  },
+}));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });

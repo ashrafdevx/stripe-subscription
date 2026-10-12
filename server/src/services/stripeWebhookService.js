@@ -6,46 +6,48 @@ const stripe = Stripe(process.env.STRIPE_SERVER_SECRET_KEY);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const paymentStatuses = {
+  'payment_intent.created': 'pending',
   'payment_intent.succeeded': 'succeeded',
   'payment_intent.processing': 'processing',
   'payment_intent.payment_failed': 'failed',
   'payment_intent.canceled': 'canceled',
 };
 
-async function recordStripeEvent(rawBody, signature) {
-  const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+async function recordStripeEvent(rawBody, signature, {
+  stripeClient = stripe,
+  paymentLogModel = PaymentLog,
+  purchaseModel = Purchase,
+} = {}) {
+  const event = stripeClient.webhooks.constructEvent(rawBody, signature, webhookSecret);
   const paymentIntent = event.data.object;
   const isPaymentIntent = paymentIntent.object === 'payment_intent';
   const nextStatus = paymentStatuses[event.type];
   let purchase = null;
 
-  if (isPaymentIntent && nextStatus) {
-    const statusFilter = nextStatus === 'succeeded'
-      ? {}
-      : { status: { $nin: ['succeeded', 'canceled'] } };
-    const update = { status: nextStatus };
-
-    if (nextStatus === 'succeeded') {
-      update.paidAt = new Date(event.created * 1000);
-    }
-
-    purchase = await Purchase.findOneAndUpdate(
-      { stripePaymentIntentId: paymentIntent.id, ...statusFilter },
-      { $set: update },
-      { new: true },
+  if (isPaymentIntent && nextStatus === 'succeeded') {
+    purchase = await purchaseModel.findOneAndUpdate(
+      { stripePaymentIntentId: paymentIntent.id },
+      {
+        $set: {
+          status: 'succeeded',
+          paidAt: new Date(event.created * 1000),
+        },
+        $setOnInsert: {
+          productName: paymentIntent.metadata?.productName || 'The Sunday Ceramic Cup',
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+        },
+      },
+      { new: true, upsert: true, runValidators: true },
     );
-
-    if (!purchase) {
-      purchase = await Purchase.findOne({ stripePaymentIntentId: paymentIntent.id });
-    }
   }
 
   const outcome = !isPaymentIntent || !nextStatus
     ? 'ignored'
-    : purchase?.status || 'purchase_not_found';
+    : nextStatus;
 
   try {
-    await PaymentLog.create({
+    await paymentLogModel.create({
       stripeEventId: event.id,
       eventType: event.type,
       stripePaymentIntentId: isPaymentIntent ? paymentIntent.id : undefined,
