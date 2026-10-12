@@ -4,11 +4,10 @@ const Purchase = require('../models/Purchase');
 
 const stripe = Stripe(process.env.STRIPE_SERVER_SECRET_KEY);
 
-async function createPaymentIntent(productKey) {
-  // For now, this is a fixed learning-project product.
+async function createPaymentIntent() {
   const product = {
     name: 'The Sunday Ceramic Cup',
-    amount: 1000, // 1000 cents = $10.00
+    amount: 1000, // $10.00 USD (amount is in cents)
     currency: 'usd',
   };
 
@@ -17,7 +16,6 @@ async function createPaymentIntent(productKey) {
     currency: product.currency,
     payment_method_types: ['card'],
     metadata: {
-      productKey: productKey || 'sunday-ceramic-cup',
       productName: product.name,
     },
   });
