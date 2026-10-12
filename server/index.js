@@ -1,16 +1,18 @@
 
 const path = require('node:path');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
-require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 
-app.use(express.json());
-const express = require('express');
+require('dotenv').config({
+  path: path.resolve(__dirname, '.env'),
+});
+
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env.local'),
+});
+
 const connectDatabase = require('./src/config/database');
 const app = require('./src/app');
 
 const port = process.env.PORT || 3000;
-
-// Parse JSON request bodies before handling routes
 
 // Validate required environment variables
 const requiredEnvVars = [
