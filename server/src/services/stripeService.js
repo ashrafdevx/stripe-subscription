@@ -4,28 +4,46 @@ const Purchase = require('../models/Purchase');
 
 const stripe = Stripe(process.env.STRIPE_SERVER_SECRET_KEY);
 
-async function createPaymentIntent() {
+function paymentError(stage, cause) {
+  const error = new Error(cause.message, { cause });
+  error.name = 'PaymentIntentSetupError';
+  error.stage = stage;
+  return error;
+}
+
+async function createPaymentIntent({
+  stripeClient = stripe,
+  purchaseModel = Purchase,
+  logger = console,
+} = {}) {
   const product = {
     name: 'The Sunday Ceramic Cup',
     amount: 1000, // $10.00 USD (amount is in cents)
     currency: 'usd',
   };
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: product.amount,
-    currency: product.currency,
-    payment_method_types: ['card'],
-    metadata: {
-      productName: product.name,
-    },
-  });
+  let paymentIntent;
+  try {
+    paymentIntent = await stripeClient.paymentIntents.create({
+      amount: product.amount,
+      currency: product.currency,
+      metadata: {
+        productName: product.name,
+      },
+    });
+  } catch (error) {
+    throw paymentError('stripe.create_payment_intent', error);
+  }
 
   if (!paymentIntent.client_secret) {
-    throw new Error('Stripe did not return a PaymentIntent client secret.');
+    throw paymentError(
+      'stripe.create_payment_intent',
+      new Error('Stripe did not return a PaymentIntent client secret.'),
+    );
   }
 
   try {
-    await Purchase.create({
+    await purchaseModel.create({
       stripePaymentIntentId: paymentIntent.id,
       productName: product.name,
       amount: paymentIntent.amount,
@@ -34,15 +52,18 @@ async function createPaymentIntent() {
     });
   } catch (error) {
     try {
-      await stripe.paymentIntents.cancel(paymentIntent.id);
+      await stripeClient.paymentIntents.cancel(paymentIntent.id);
     } catch (cancelError) {
-      console.error(
-        'Could not cancel unrecorded PaymentIntent:',
-        cancelError.message,
-      );
+      logger.error('Could not cancel unrecorded PaymentIntent:', {
+        message: cancelError.message,
+        type: cancelError.type,
+        code: cancelError.code,
+        statusCode: cancelError.statusCode,
+        requestId: cancelError.requestId,
+      });
     }
 
-    throw error;
+    throw paymentError('mongodb.persist_purchase', error);
   }
 
   return paymentIntent.client_secret;

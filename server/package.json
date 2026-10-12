@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",    "build": "node --check index.js"
+    "test": "node --test",
+    "build": "node --check index.js && node --check src/app.js && node --check src/config/database.js && node --check src/models/PaymentLog.js && node --check src/models/Purchase.js && node --check src/routes/paymentRoutes.js && node --check src/routes/stripeWebhookRoutes.js && node --check src/services/stripeService.js && node --check src/services/stripeWebhookService.js"
 
   },
   "keywords": [],

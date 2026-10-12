@@ -1,30 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import "./App.css";
 
-const API_URL = import.meta.env.PROD
-  ? 'https://stripe-subscription-muw7.onrender.com'
-  : 'http://localhost:3000';
-  const publishableKey = import.meta.env.STRIPE_PUBLISHABLE_KEY;
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? 'https://stripe-subscription-muw7.onrender.com'
+    : 'http://localhost:3000')
+).replace(/\/+$/, '');
+const publishableKey = import.meta.env.STRIPE_PUBLISHABLE_KEY;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
 const paymentReturned = new URLSearchParams(window.location.search).get("payment") === "complete";
 
-function PaymentForm() {
+function PaymentForm({ onStartNewPayment }) {
   const stripe = useStripe();
   const elements = useElements();
+  const submissionInProgress = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
 
   async function submitPayment(event) {
     event.preventDefault();
 
-    if (!stripe || !elements) {
+    if (!stripe || !elements || submissionInProgress.current || isFinished) {
       return;
     }
 
+    submissionInProgress.current = true;
     setIsProcessing(true);
     setError("");
     setStatus("");
@@ -37,44 +43,65 @@ function PaymentForm() {
         },
         redirect: "if_required",
       });
-console.log("confirmPayment result:", result);
-console.log("confirmPayment .paymentIntent?.status:", result.paymentIntent?.status);
-console.log("confirmPayment result.paymentIntent?.status:", result.paymentIntent?.status);
 
       if (result.error) {
         setError(result.error.message || "The payment could not be confirmed.");
+        setIsFinished(true);
       } else if (result.paymentIntent?.status === "succeeded") {
         setStatus("Payment succeeded in Stripe. Your purchase record is updated when the verified webhook arrives.");
+        setIsFinished(true);
       } else if (result.paymentIntent?.status === "processing") {
         setStatus("Payment is processing. Check Stripe Dashboard for its final status.");
+        setIsFinished(true);
       } else {
         setError("Payment was not completed. Check the payment details and try again.");
+        setIsFinished(true);
       }
     } catch (paymentError) {
       setError(paymentError.message || "Unable to confirm the payment. Please try again.");
+      setIsFinished(true);
     } finally {
       setIsProcessing(false);
     }
   }
 
   return (
-    <form className="payment-form" onSubmit={submitPayment}>
-      <PaymentElement />
-      <button className="checkout-button" type="submit" disabled={!stripe || !elements || isProcessing}>
-        {isProcessing ? "Processing payment…" : "Pay $10.00"}
-        {!isProcessing && <span aria-hidden="true">→</span>}
-      </button>
-      {error && <p className="notice error" role="alert">{error}</p>}
-      {status && <p className="notice success" role="status">{status}</p>}
-      <p className="payment-note">Your payment details are securely handled by Stripe.</p>
-    </form>
+    <>
+      <form className="payment-form" onSubmit={submitPayment}>
+        <PaymentElement />
+        <button className="checkout-button" type="submit" disabled={!stripe || !elements || isProcessing || isFinished}>
+          {isProcessing ? "Processing payment…" : "Pay $10.00"}
+          {!isProcessing && <span aria-hidden="true">→</span>}
+        </button>
+        {error && <p className="notice error" role="alert">{error}</p>}
+        {status && <p className="notice success" role="status">{status}</p>}
+        <p className="payment-note">Your payment details are securely handled by Stripe.</p>
+      </form>
+      {isFinished && resultAllowsAnotherAttempt(status) && (
+        <button className="checkout-button" type="button" onClick={onStartNewPayment}>
+          Start another $10.00 payment
+          <span aria-hidden="true">→</span>
+        </button>
+      )}
+      {isFinished && error && (
+        <button className="checkout-button" type="button" onClick={onStartNewPayment}>
+          Try again with a new payment
+          <span aria-hidden="true">→</span>
+        </button>
+      )}
+    </>
   );
+}
+
+function resultAllowsAnotherAttempt(status) {
+  return status.startsWith("Payment succeeded");
 }
 
 function App() {
   const [clientSecret, setClientSecret] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const paymentRequestInProgress = useRef(false);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has("payment_intent_client_secret")) {
@@ -84,8 +111,14 @@ function App() {
 
   
 async function startPayment() {
+  if (paymentRequestInProgress.current) {
+    return;
+  }
+
+  paymentRequestInProgress.current = true;
   setIsLoading(true);
   setError("");
+  setClientSecret("");
 
   try {
     const response = await fetch(
@@ -123,6 +156,7 @@ async function startPayment() {
       paymentError.message || "Unable to reach the payment server."
     );
   } finally {
+    paymentRequestInProgress.current = false;
     setIsLoading(false);
   }
 }
@@ -187,7 +221,7 @@ async function startPayment() {
                 },
               }}
             >
-              <PaymentForm />
+              <PaymentForm onStartNewPayment={startPayment} />
             </Elements>
           ) : (
             <>

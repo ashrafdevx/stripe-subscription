@@ -15,6 +15,7 @@ A small React storefront, Express API, and Stripe PaymentIntent flow. The demo s
    - Copy `server/.env.example` to `server/.env`, then replace the placeholders with `STRIPE_SERVER_SECRET_KEY` and your MongoDB Atlas `MONGODB_URI`. Keep real values in `server/.env`; it is ignored by Git.
    - Put `STRIPE_PUBLISHABLE_KEY=pk_test_...` in the workspace-root `.env.local`. Vite exposes only this publishable key to the browser; it never exposes the server secret key.
    - The app also accepts `VITE_STRIPE_PUBLISHABLE_KEY` from Vite's environment configuration.
+   - To override the API address, set `VITE_API_URL` in the workspace-root `.env.local` locally or in the frontend build environment in production. Otherwise, development uses `http://localhost:3000` and production uses the configured Render API URL.
 
    Restart the development processes after changing environment files.
 
@@ -54,13 +55,26 @@ cd server
 npm run dev
 ```
 
+Before deploying backend changes, run the backend tests and syntax checks, then build and lint the frontend:
+
+```sh
+cd server
+npm test
+npm run build
+cd ../client
+npm run build
+npm run lint
+```
+
 The server defaults to port `3000` and client origin `http://localhost:5173`. Override these with `PORT` and `CLIENT_URL` in `server/.env` if needed. The client API address can be overridden with `VITE_API_URL`.
 
 ## API
 
 - `GET /health` — returns `{ "status": "ok" }`.
-- `POST /create-payment-intent` — creates a fixed $10.00 USD card-only PaymentIntent and returns `{ "clientSecret": "..." }` for Stripe.js.
+- `POST /create-payment-intent` — creates a fixed $10.00 USD PaymentIntent using the payment methods enabled in the Stripe Dashboard and returns `{ "clientSecret": "..." }` for Stripe.js.
 - `POST /webhooks/stripe` — accepts Stripe-signed webhook events, updates purchase status, and records each event once.
+
+Each new checkout attempt creates a new PaymentIntent. Payment submission is locked while confirmation is in progress; after a completed or failed attempt, the UI requires a new PaymentIntent before another confirmation.
 
 MongoDB uses two collections: `purchases` stores the product, amount, PaymentIntent ID, current status, and success time; `paymentlogs` stores Stripe event IDs, event types, outcomes, and related purchase IDs. Stripe event IDs are unique so webhook retries do not create duplicate logs. Backend files are split by job: `server/index.js` starts the server, `server/src/config/database.js` connects to MongoDB, `server/src/models/` defines both collections, `server/src/routes/` handles HTTP requests, and `server/src/services/` contains the Stripe and webhook logic.
 
