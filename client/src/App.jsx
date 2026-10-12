@@ -5,7 +5,8 @@ import "./App.css";
 
 const API_URL = import.meta.env.PROD
   ? 'https://stripe-subscription-muw7.onrender.com'
-  : 'http://localhost:3000';const publishableKey = import.meta.env.STRIPE_PUBLISHABLE_KEY;
+  : 'http://localhost:3000';
+  const publishableKey = import.meta.env.STRIPE_PUBLISHABLE_KEY;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
 const paymentReturned = new URLSearchParams(window.location.search).get("payment") === "complete";
@@ -81,30 +82,51 @@ function App() {
     }
   }, []);
 
-  async function startPayment() {
-    setIsLoading(true);
-    setError("");
+  
+async function startPayment() {
+  setIsLoading(true);
+  setError("");
 
-    try {
-      const response = await fetch(`${API_URL}/create-payment-intent`, {
+  try {
+    const response = await fetch(
+      `${API_URL}/create-payment-intent`,
+      {
         method: "POST",
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Could not start the payment.");
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
-      if (typeof result.clientSecret !== "string" || !result.clientSecret.startsWith("pi_")) {
-        throw new Error("The server did not return a valid PaymentIntent client secret.");
-      }
+    );
 
-      setClientSecret(result.clientSecret);
-    } catch (paymentError) {
-      setError(paymentError.message || "Unable to reach the payment server.");
-    } finally {
-      setIsLoading(false);
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || "Could not start the payment."
+      );
     }
+
+    if (
+      typeof result.clientSecret !== "string" ||
+      !/^pi_[^_]+_secret_[^_]+$/.test(result.clientSecret)
+    ) {
+      throw new Error(
+        "The server did not return a valid PaymentIntent client secret."
+      );
+    }
+
+    setClientSecret(result.clientSecret);
+  } catch (paymentError) {
+    console.error("Payment initialization failed:", paymentError);
+
+    setError(
+      paymentError.message || "Unable to reach the payment server."
+    );
+  } finally {
+    setIsLoading(false);
   }
+}
+
 
   return (
     <main className="store">
