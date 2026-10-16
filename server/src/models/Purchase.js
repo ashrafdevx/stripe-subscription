@@ -2,6 +2,18 @@ const mongoose = require('mongoose');
 
 const purchaseSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
+    productSource: {
+      type: String,
+      enum: ['demo', 'stripe'],
+    },
+    productId: String,
+    priceId: String,
+    productDescription: String,
     stripePaymentIntentId: {
       type: String,
       required: true,

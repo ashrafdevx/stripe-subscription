@@ -11,6 +11,21 @@ process.env.CLIENT_URL = [
 ].join(',');
 const app = require('../src/app');
 
+test('demo product route returns the hardcoded products', async (t) => {
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  }));
+
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/products/demo`);
+  const result = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(result.products.length > 0);
+  assert.ok(result.products.every((product) => product.source === 'demo'));
+});
+
 test('CORS preflight allows the production Vercel origin', async (t) => {
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -53,5 +68,24 @@ test('webhook route receives the raw request body before JSON parsing', async (t
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {
     error: 'Invalid Stripe webhook signature.',
+  });
+});
+
+test('malformed JSON requests receive a consistent JSON error response', async (t) => {
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  }));
+
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{',
+  });
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: 'Request body must be valid JSON.',
   });
 });

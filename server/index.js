@@ -19,6 +19,7 @@ const requiredEnvVars = [
   'STRIPE_SERVER_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
   'MONGODB_URI',
+  'AUTH_ACCESS_TOKEN_SECRET',
 ];
 
 const missingEnvVars = requiredEnvVars.filter(
@@ -32,6 +33,11 @@ if (missingEnvVars.length > 0) {
   console.error(
     'Configure these variables in Render Dashboard > Environment.'
   );
+  process.exit(1);
+}
+
+if (Buffer.byteLength(process.env.AUTH_ACCESS_TOKEN_SECRET) < 32) {
+  console.error('AUTH_ACCESS_TOKEN_SECRET must contain at least 32 bytes.');
   process.exit(1);
 }
 

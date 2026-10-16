@@ -1,16 +1,25 @@
 
 const express = require('express');
+const { requireAuth } = require('../middleware/requireAuth');
 const { createPaymentIntent } = require('../services/stripeService');
 
 const router = express.Router();
 
-router.post('/create-payment-intent', async (req, res) => {
+router.post('/create-payment-intent', requireAuth, async (req, res) => {
   try {
-    const clientSecret = await createPaymentIntent();
+    const clientSecret = await createPaymentIntent({
+      source: req.body?.source,
+      productId: req.body?.productId,
+      priceId: req.body?.priceId,
+      userId: req.auth.userId,
+    });
 
     return res.status(200).json({ clientSecret });
-    
   } catch (error) {
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message });
+    }
+
     const cause = error.cause || error;
     console.error('Stripe PaymentIntent creation failed:', {
       stage: error.stage || 'unknown',

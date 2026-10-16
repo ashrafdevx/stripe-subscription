@@ -33,7 +33,12 @@ async function recordStripeEvent(rawBody, signature, {
           paidAt: new Date(event.created * 1000),
         },
         $setOnInsert: {
+          ...(paymentIntent.metadata?.userId ? { user: paymentIntent.metadata.userId } : {}),
+          productSource: paymentIntent.metadata?.productSource,
+          priceId: paymentIntent.metadata?.priceId,
+          productId: paymentIntent.metadata?.productId,
           productName: paymentIntent.metadata?.productName || 'The Sunday Ceramic Cup',
+          productDescription: paymentIntent.metadata?.productDescription,
           amount: paymentIntent.amount,
           currency: paymentIntent.currency,
         },

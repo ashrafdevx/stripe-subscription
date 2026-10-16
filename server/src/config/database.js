@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
+const AuthSession = require('../models/AuthSession');
 const PaymentLog = require('../models/PaymentLog');
 const Purchase = require('../models/Purchase');
+const User = require('../models/User');
 
 mongoose.set('bufferCommands', false);
 
@@ -15,7 +17,12 @@ async function connectDatabase() {
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS) || 10000,
     });
-    await Promise.all([Purchase.init(), PaymentLog.init()]);
+    await Promise.all([
+      AuthSession.init(),
+      Purchase.init(),
+      PaymentLog.init(),
+      User.init(),
+    ]);
   } catch (error) {
     if (error.name === 'MongooseServerSelectionError') {
       throw new Error(

@@ -7,17 +7,19 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node --test",
-    "build": "node --check index.js && node --check src/app.js && node --check src/config/database.js && node --check src/models/PaymentLog.js && node --check src/models/Purchase.js && node --check src/routes/paymentRoutes.js && node --check src/routes/stripeWebhookRoutes.js && node --check src/services/stripeService.js && node --check src/services/stripeWebhookService.js"
-
+    "build": "node --check index.js && node --check src/app.js && node --check src/config/clientOrigins.js && node --check src/config/demoProducts.js && node --check src/config/database.js && node --check src/middleware/requireAuth.js && node --check src/models/AuthSession.js && node --check src/models/PaymentLog.js && node --check src/models/Purchase.js && node --check src/models/User.js && node --check src/routes/authRoutes.js && node --check src/routes/paymentRoutes.js && node --check src/routes/productRoutes.js && node --check src/routes/purchaseRoutes.js && node --check src/routes/stripeWebhookRoutes.js && node --check src/services/authService.js && node --check src/services/passwordService.js && node --check src/services/sessionService.js && node --check src/services/tokenService.js && node --check src/services/stripeCatalogService.js && node --check src/services/stripeService.js && node --check src/services/stripeWebhookService.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "argon2": "^0.45.1",
     "cors": "^2.8.6",
     "dotenv": "^18.0.6",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.1",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.1",
     "stripe": "^23.0.0"
   },

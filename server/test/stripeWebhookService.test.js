@@ -16,7 +16,13 @@ function createDependencies({ updateResult = null } = {}) {
         object: 'payment_intent',
         amount: 1000,
         currency: 'usd',
-        metadata: { productName: 'The Sunday Ceramic Cup' },
+        metadata: {
+          productSource: 'stripe',
+          priceId: 'price_sunday_cup',
+          productId: 'prod_sunday_cup',
+          productName: 'The Sunday Ceramic Cup',
+          productDescription: 'A hand-finished stoneware cup for slow mornings.',
+        },
       },
     },
   };
@@ -79,7 +85,11 @@ test('creates a purchase on the first successful webhook event', async () => {
         paidAt: new Date(1000),
       },
       $setOnInsert: {
+        productSource: 'stripe',
+        priceId: 'price_sunday_cup',
+        productId: 'prod_sunday_cup',
         productName: 'The Sunday Ceramic Cup',
+        productDescription: 'A hand-finished stoneware cup for slow mornings.',
         amount: 1000,
         currency: 'usd',
       },
